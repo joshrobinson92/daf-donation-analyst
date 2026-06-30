@@ -112,6 +112,12 @@ const elements = {
   apiStatusBadge: document.getElementById('api-status-badge'),
   apiStatusText: document.getElementById('api-status-text'),
 
+  // Password Gate Elements
+  passwordGate: document.getElementById('password-gate'),
+  gatePasswordInput: document.getElementById('gate-password-input'),
+  gateSubmitBtn: document.getElementById('gate-submit-btn'),
+  gateError: document.getElementById('gate-error'),
+
   // Charity Search and list
   charitySearchInput: document.getElementById('charity-search-input'),
   charityFilterSelect: document.getElementById('charity-filter-select'),
@@ -152,6 +158,16 @@ const elements = {
 
 // --- INITIALIZATION ---
 function init() {
+  // Check Password Gate Auth
+  const isAuth = localStorage.getItem('daf_testing_auth') === 'true';
+  if (isAuth) {
+    if (elements.passwordGate) {
+      elements.passwordGate.classList.add('hidden');
+    }
+  } else {
+    setupPasswordGate();
+  }
+
   // Populate Investment Portfolio Options
   INVESTMENT_PORTFOLIOS.forEach(p => {
     const option = document.createElement('option');
@@ -163,13 +179,12 @@ function init() {
   // Render Cause Allocation Sliders
   renderCauseSliders();
 
-  // Load Every.org API Key from localStorage
-  const savedKey = localStorage.getItem('everyorg_apikey');
-  if (savedKey) {
-    appState.everyOrgApiKey = savedKey;
-    if (elements.everyorgApiKeyInput) {
-      elements.everyorgApiKeyInput.value = savedKey;
-    }
+  // Load Every.org API Key from localStorage or use user-provided default
+  const defaultApiKey = 'pk_live_f0165cc046163d43ae6ea8a63ec27e25';
+  const savedKey = localStorage.getItem('everyorg_apikey') || defaultApiKey;
+  appState.everyOrgApiKey = savedKey;
+  if (elements.everyorgApiKeyInput) {
+    elements.everyorgApiKeyInput.value = savedKey;
   }
 
   // Attach Event Listeners
@@ -1042,6 +1057,41 @@ function updateApiStatusBadge(isActive) {
     if (dot) dot.className = 'badge-dot fallback';
     elements.apiStatusText.textContent = 'Local Fallback Active';
   }
+}
+
+function setupPasswordGate() {
+  if (!elements.passwordGate || !elements.gateSubmitBtn || !elements.gatePasswordInput) return;
+
+  const checkPassword = () => {
+    const pw = elements.gatePasswordInput.value.trim();
+    if (pw === 'daf-testing') {
+      localStorage.setItem('daf_testing_auth', 'true');
+      elements.passwordGate.classList.add('hidden');
+      if (elements.gateError) elements.gateError.style.display = 'none';
+    } else {
+      if (elements.gateError) {
+        elements.gateError.style.display = 'block';
+        // Add shake animation class
+        elements.gateError.classList.remove('gate-error-message');
+        void elements.gateError.offsetWidth; // Trigger reflow
+        elements.gateError.classList.add('gate-error-message');
+      }
+      elements.gatePasswordInput.value = '';
+      elements.gatePasswordInput.focus();
+    }
+  };
+
+  elements.gateSubmitBtn.addEventListener('click', checkPassword);
+  elements.gatePasswordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      checkPassword();
+    }
+  });
+
+  // Focus input on load
+  setTimeout(() => {
+    elements.gatePasswordInput.focus();
+  }, 100);
 }
 
 // Start application

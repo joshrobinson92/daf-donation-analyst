@@ -8,6 +8,22 @@
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
+  <!-- Password Gate Overlay -->
+  <div id="password-gate" class="password-gate-overlay">
+    <div class="password-card">
+      <div class="password-icon">🔒</div>
+      <h2>Secure Testing Workspace</h2>
+      <p>This DAF Donation Analyst simulator is currently in testing. Please enter the access password.</p>
+      <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; width: 100%;">
+        <input type="password" id="gate-password-input" class="input-text" placeholder="Enter password..." style="flex:1; margin:0; padding:0.625rem 0.875rem;">
+        <button id="gate-submit-btn" class="btn btn-primary" style="padding: 0 1.5rem; height: 42px;">Unlock</button>
+      </div>
+      <div id="gate-error" class="gate-error-message" style="display:none; color: #ef4444; font-size: 0.8rem; margin-top: 0.75rem; font-weight: 600;">
+        ❌ Invalid password. Please try again.
+      </div>
+    </div>
+  </div>
+
   <div class="app-container">
     
     <!-- Top Navigation Header -->
