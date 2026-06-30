@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DAF Donation Analyst & Strategy Forecaster</title>
+  <meta name="description" content="An interactive tool for DAF donors to analyze tax benefits, model long-term growth and payout strategies, and allocate funds to high-impact charities.">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Navigation Header -->
+    <header>
+      <div class="brand">
+        <div class="logo-icon">🪶</div>
+        <h1>DAF Donation Analyst</h1>
+      </div>
+      
+      <nav class="nav-tabs" role="tablist">
+        <a href="#home" id="nav-home" class="nav-tab active" role="tab" aria-selected="true">Benefits & Overview</a>
+        <a href="#invest" id="nav-invest" class="nav-tab" role="tab" aria-selected="false">Strategy Forecaster</a>
+        <a href="#nonprofits" id="nav-nonprofits" class="nav-tab" role="tab" aria-selected="false">Charity Directory</a>
+      </nav>
+
+      <div class="header-controls" id="forecaster-presets" style="display: none;">
+        <label for="strategy-preset-select" style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted);">Preset:</label>
+        <select id="strategy-preset-select" class="input-text" style="width: 170px; padding: 0.3rem 2rem 0.3rem 0.75rem; font-size: 0.8rem;">
+          <option value="custom">-- Custom Strategy --</option>
+          <option value="endowment" selected>Perpetual Endowment</option>
+          <option value="active-giving">Active Impact Plan</option>
+          <option value="sunset-fund">10-Year Spenddown</option>
+        </select>
+        <button id="reset-btn" class="btn btn-sm" aria-label="Reset calculator to defaults">
+          Reset
+        </button>
+      </div>
+    </header>
+
+    <!-- Page 1: Landing / Benefits Overview -->
+    <section id="view-home" class="page-view active" aria-label="DAF Benefits Page">
+      
+      <!-- Hero Section -->
+      <div class="landing-hero">
+        <h2>Modern Philanthropy, Strategic Results</h2>
+        <p>A Donor Advised Fund (DAF) is a tax-efficient, high-growth investment account dedicated exclusively to your charitable giving. Discover how to compound your wealth and amplify your social impact.</p>
+        <div class="landing-cta-row">
+          <a href="#invest" class="btn btn-primary">Model Your Growth 📈</a>
+          <a href="#nonprofits" class="btn">Explore Nonprofits 🔍</a>
+        </div>
+      </div>
+
+      <!-- DAF Process Diagram -->
+      <div class="card flow-card">
+        <h3 style="text-align: center; margin-bottom: 2rem; font-family: var(--font-display); font-size: 1.25rem;">How a Donor Advised Fund Works</h3>
+        
+        <div class="flow-steps">
+          
+          <div class="flow-step">
+            <div class="step-badge">1</div>
+            <h4>Contribute</h4>
+            <p>Contribute cash, mutual funds, or appreciated stock directly to your DAF account.</p>
+          </div>
+          
+          <div class="flow-arrow">➔</div>
+          
+          <div class="flow-step">
+            <div class="step-badge">2</div>
+            <h4>Tax Deduction</h4>
+            <p>Secure an immediate income tax deduction in the year you make the contribution.</p>
+          </div>
+          
+          <div class="flow-arrow">➔</div>
+          
+          <div class="flow-step">
+            <div class="step-badge">3</div>
+            <h4>Grow Tax-Free</h4>
+            <p>Assets are invested in curated portfolios and grow compounding completely tax-free.</p>
+          </div>
+          
+          <div class="flow-arrow">➔</div>
+          
+          <div class="flow-step">
+            <div class="step-badge">4</div>
+            <h4>Recommend Grants</h4>
+            <p>Distribute grants to your favorite 501(c)(3) charities over time on your own schedule.</p>
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- Benefits Matrix Grid -->
+      <div class="benefits-grid">
+        <div class="card benefit-card">
+          <div class="benefit-icon">📈</div>
+          <h4>Immediate Tax Deductions</h4>
+          <p>Get a tax deduction up to 60% of AGI for cash, or up to 30% for appreciated assets immediately. Your assets grow while you select charities over months or years.</p>
+        </div>
+        
+        <div class="card benefit-card">
+          <div class="benefit-icon">🍀</div>
+          <h4>Bypass Capital Gains</h4>
+          <p>Donate long-term appreciated stock directly to your DAF. You pay 0% capital gains tax and deduct the full fair-market value, amplifying giving power by up to 20%.</p>
+        </div>
+        
+        <div class="card benefit-card">
+          <div class="benefit-icon">⚡</div>
+          <h4>Consolidated Simplicity</h4>
+          <p>Ditch the clutter of charity tax receipts. Contribute once to fund your DAF, receive one tax receipt, and recommend multiple grants to different nonprofits from one central account.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Page 2: Strategy Forecaster -->
+    <section id="view-invest" class="page-view" aria-label="Strategy Forecaster Page">
+      
+      <!-- Dashboard Hero Metrics -->
+      <div class="dashboard-grid" aria-label="Strategy projection summary metrics">
+        <div class="card metric-card primary">
+          <div class="metric-label">Projected Final DAF Balance</div>
+          <div id="metric-final-balance" class="metric-value">$0</div>
+          <div id="metric-final-balance-sub" class="metric-sub">Value in Year N</div>
+        </div>
+        
+        <div class="card metric-card accent">
+          <div class="metric-label">Total Grants Distributed</div>
+          <div id="metric-total-grants" class="metric-value">$0</div>
+          <div id="metric-total-grants-sub" class="metric-sub">Cumulative payouts</div>
+        </div>
+
+        <div class="card metric-card warning">
+          <div class="metric-label">Net Out-of-Pocket Cost</div>
+          <div id="metric-net-cost" class="metric-value">$0</div>
+          <div id="metric-net-cost-sub" class="metric-sub">Adjusted for tax savings</div>
+        </div>
+
+        <div class="card metric-card purple">
+          <div class="metric-label">Giving Power Multiplier</div>
+          <div id="metric-multiplier" class="metric-value">0.0x</div>
+          <div id="metric-multiplier-sub" class="metric-sub">Charitable impact per dollar cost</div>
+        </div>
+      </div>
+
+      <!-- Main Strategy and Projection Workspace -->
+      <div class="workspace-grid" aria-label="DAF strategy workspace">
+        
+        <!-- Control Panel (Left) -->
+        <div class="card control-panel" aria-label="Simulation variables">
+          <h3 class="section-title">📊 Plan Parameters</h3>
+          
+          <!-- Starting Balance -->
+          <div class="control-group">
+            <div class="control-label-wrapper">
+              <label for="input-start-balance" class="control-label">Starting DAF Balance</label>
+              <span id="value-start-balance" class="control-value">$0</span>
+            </div>
+            <input type="range" id="input-start-balance" min="25000" max="2500000" step="25000" value="250000" aria-valuemin="25000" aria-valuemax="2500000">
+          </div>
+
+          <!-- Annual Contribution -->
+          <div class="control-group">
+            <div class="control-label-wrapper">
+              <label for="input-annual-contribution" class="control-label">Annual Contribution</label>
+              <span id="value-annual-contribution" class="control-value">$0</span>
+            </div>
+            <input type="range" id="input-annual-contribution" min="0" max="250000" step="5000" value="10000" aria-valuemin="0" aria-valuemax="250000">
+          </div>
+
+          <!-- Investment Portfolio Select -->
+          <div class="control-group">
+            <label for="input-portfolio" class="control-label">DAF Investment Portfolio</label>
+            <select id="input-portfolio" class="input-text">
+              <!-- Portfolios will be injected dynamically -->
+            </select>
+            <span id="portfolio-desc" style="font-size: 0.75rem; color: var(--color-text-dim); margin-top: 0.125rem;"></span>
+          </div>
+
+          <!-- Expected Growth Rate -->
+          <div class="control-group">
+            <div class="control-label-wrapper">
+              <label for="input-growth-rate" class="control-label">Expected Growth Rate</label>
+              <span id="value-growth-rate" class="control-value">0%</span>
+            </div>
+            <input type="range" id="input-growth-rate" min="0" max="15" step="0.1" value="8.5" aria-valuemin="0" aria-valuemax="15">
+          </div>
+
+          <!-- Grant Recommendation Payout Type Toggle -->
+          <div class="control-group">
+            <label class="control-label">Annual Grant Outflow Method</label>
+            <div class="toggle-wrapper">
+              <button id="toggle-grant-percent" class="toggle-btn active">Percentage (%)</button>
+              <button id="toggle-grant-fixed" class="toggle-btn">Fixed Dollar ($)</button>
+            </div>
+          </div>
+
+          <!-- Grant Recommendation Value -->
+          <div class="control-group">
+            <div class="control-label-wrapper">
+              <label id="label-grant-value" for="input-grant-value" class="control-label">Annual Payout Rate</label>
+              <span id="value-grant-value" class="control-value">0</span>
+            </div>
+            <input type="range" id="input-grant-value" min="1" max="50" step="1" value="5" aria-valuemin="1" aria-valuemax="50">
+          </div>
+
+          <!-- Timeline -->
+          <div class="control-group">
+            <div class="control-label-wrapper">
+              <label for="input-timeline" class="control-label">Projection Timeline</label>
+              <span id="value-timeline" class="control-value">0 Years</span>
+            </div>
+            <input type="range" id="input-timeline" min="5" max="30" step="1" value="25" aria-valuemin="5" aria-valuemax="30">
+          </div>
+
+        </div>
+
+        <!-- Projection Visualization (Right) -->
+        <div class="card viz-panel" aria-label="Simulation charts">
+          <div class="viz-header">
+            <h3 class="section-title">📈 Strategy Projection Forecaster</h3>
+            <div class="chart-legend" aria-hidden="true">
+              <div class="legend-item">
+                <div class="legend-dot balance"></div>
+                <span>Projected DAF Balance</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot grants"></div>
+                <span>Cumulative Grants Paid</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="chart-container" id="projection-chart-container">
+            <!-- SVG chart will be injected here -->
+          </div>
+
+          <!-- Tooltip element -->
+          <div class="chart-tooltip" id="chart-tooltip"></div>
+        </div>
+      </div>
+
+      <!-- Tax Optimization Calculator -->
+      <div class="card tax-card" aria-label="Tax savings calculator">
+        <div class="tax-input-panel">
+          <h3 class="section-title">💵 Appreciated Stock Tax Optimizer</h3>
+          <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: -0.75rem; margin-bottom: 0.5rem;">
+            Donating appreciated stock directly to your DAF bypasses capital gains tax and secures a full fair-market value income tax deduction.
+          </p>
+
+          <div class="control-group">
+            <label for="input-tax-donation" class="control-label">Target Donation Amount</label>
+            <input type="number" id="input-tax-donation" class="input-text" value="50000" min="1000" step="1000">
+          </div>
+
+          <div class="control-group">
+            <label for="input-tax-basis" class="control-label">Cost Basis (% of Current Value)</label>
+            <div class="control-label-wrapper" style="margin-top:-0.25rem;">
+              <span style="font-size:0.7rem; color: var(--color-text-dim);">Lower basis = higher capital gains</span>
+              <span id="value-tax-basis" class="control-value">30%</span>
+            </div>
+            <input type="range" id="input-tax-basis" min="0" max="95" step="5" value="30">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="control-group">
+              <label for="input-tax-ordinary" class="control-label">Ord. Income Tax Rate</label>
+              <input type="number" id="input-tax-ordinary" class="input-text" value="37" min="0" max="60" step="1">
+            </div>
+            <div class="control-group">
+              <label for="input-tax-gains" class="control-label">Cap. Gains Tax Rate</label>
+              <input type="number" id="input-tax-gains" class="input-text" value="20" min="0" max="40" step="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="tax-results-panel">
+          <div class="tax-comparison-grid">
+            
+            <!-- Cash Columns -->
+            <div class="comparison-column" id="cash-col">
+              <div class="comparison-header">Option 1: Donate Cash</div>
+              <div class="comparison-value" id="tax-cash-net-cost">$0</div>
+              <div class="metric-label" style="margin-top: -0.25rem; font-size:0.75rem;">Net out-of-pocket cost</div>
+              
+              <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div class="tax-detail-row">
+                  <span class="label">Donation to DAF:</span>
+                  <span class="val" id="tax-cash-payout">$0</span>
+                </div>
+                <div class="tax-detail-row">
+                  <span class="label">Income Tax Saved:</span>
+                  <span class="val" id="tax-cash-income-save">$0</span>
+                </div>
+                <div class="tax-detail-row">
+                  <span class="label">Cap Gains Saved:</span>
+                  <span class="val">$0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stock Column -->
+            <div class="comparison-column highlight" id="stock-col">
+              <div class="comparison-header">Option 2: Appreciated Stock</div>
+              <div class="comparison-value" id="tax-stock-net-cost" style="color: var(--color-accent);">$0</div>
+              <div class="metric-label" style="margin-top: -0.25rem; font-size:0.75rem; color: var(--color-text-muted);">Net out-of-pocket cost</div>
+              
+              <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div class="tax-detail-row">
+                  <span class="label" style="color: var(--color-accent); font-weight: 500;">Donation to DAF:</span>
+                  <span class="val" id="tax-stock-payout">$0</span>
+                </div>
+                <div class="tax-detail-row">
+                  <span class="label">Income Tax Saved:</span>
+                  <span class="val" id="tax-stock-income-save">$0</span>
+                </div>
+                <div class="tax-detail-row">
+                  <span class="label">Cap Gains Bypassed:</span>
+                  <span class="val" id="tax-stock-gains-save" style="color: var(--color-accent);">$0</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="tax-summary-banner" id="tax-savings-summary-banner">
+            Stock donation saves an extra $0 in capital gains tax compared to cash.
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Page 3: Charity Directory -->
+    <section id="view-nonprofits" class="page-view" aria-label="Charity Directory Page">
+      <div class="nonprofit-workspace-grid">
+        
+        <!-- Charity Directory Listing Panel (Left Column) -->
+        <div class="card" style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div class="charity-section-header">
+            <h3 class="section-title">🔍 Nonprofit Search</h3>
+            <div class="search-filters">
+              <input type="text" id="charity-search-input" class="input-text" placeholder="Search by name or keyword..." aria-label="Search nonprofits by name or keyword">
+              
+              <select id="charity-filter-select" class="input-text" aria-label="Filter nonprofits by cause category">
+                <option value="all">All Causes</option>
+                <option value="environment">Environment</option>
+                <option value="education">Education</option>
+                <option value="health">Global Health</option>
+                <option value="humanitarian">Humanitarian</option>
+                <option value="arts">Arts & Culture</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="charity-list" id="charities-container" role="list">
+            <!-- Charities will be injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Allocation Basket Panel (Right Column) -->
+        <div class="card" style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div class="charity-section-header">
+            <h3 class="section-title">💼 Payout Allocations</h3>
+            <button id="rebalance-btn" class="btn btn-sm" style="display: none;">Rebalance to 100%</button>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+            <div style="width: 100%; height: 150px;" id="donut-chart-container">
+              <!-- Donut chart injected here -->
+            </div>
+            <div id="allocation-warning" style="font-size: 0.75rem; color: var(--color-warning); font-weight: 600; display: none;">
+              ⚠️ Allocations must sum to 100% (Current: <span id="allocation-sum">0%</span>)
+            </div>
+          </div>
+
+          <div id="cause-sliders-list" aria-label="List of causes for grant distribution">
+            <!-- Dynamically injected cause sliders -->
+          </div>
+
+          <!-- Active Grants Recommend Log / Basket -->
+          <div class="basket-log-panel">
+            <h4 style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: 1rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">Recommended Grants Plan</h4>
+            <div id="basket-empty-message" style="font-size: 0.75rem; color: var(--color-text-dim); text-align: center; padding: 1rem;">
+              No grants recommended yet. Recommended grants will deduct from your simulated timeline.
+            </div>
+            <div id="basket-items-container" class="basket-items-container">
+              <!-- Simulated grants list -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Native dialog modal for Charity Details and Grant Recommendation -->
+  <dialog id="charity-dialog" closedby="any" aria-labelledby="charity-dialog-title">
+    <div class="dialog-header">
+      <h3 id="charity-dialog-title" class="dialog-title">Charity Details</h3>
+      <button id="dialog-close-btn" class="btn btn-icon btn-sm" aria-label="Close details dialog">✕</button>
+    </div>
+    
+    <div id="dialog-content">
+      <!-- Injected via JS -->
+    </div>
+    
+    <form id="dialog-grant-form" method="dialog">
+      <div class="control-group">
+        <label for="dialog-grant-amount" class="control-label" style="font-weight: 600;">Recommend Payout Amount ($)</label>
+        <input type="number" id="dialog-grant-amount" class="input-text" min="100" max="1000000" step="100" required>
+        <span style="font-size:0.7rem; color: var(--color-text-dim);">Recommended payout will be deducted from your simulated DAF timeline balance.</span>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" id="dialog-cancel-btn" class="btn">Cancel</button>
+        <button type="submit" id="dialog-confirm-btn" class="btn btn-primary">Recommend Grant</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Module Entry Script -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
