@@ -43,6 +43,10 @@ let appState = {
   // Recommended Grants
   recommendedGrants: [],
 
+  // Every.org API parameters
+  everyOrgApiKey: '',
+  selectedLiveCharity: null, // Temporary cache for recommending grants from live search results
+
   // Tax Optimizer Parameters
   taxDonation: 50000,
   taxBasisPercent: 30,
@@ -103,10 +107,16 @@ const elements = {
   allocationSum: document.getElementById('allocation-sum'),
   rebalanceBtn: document.getElementById('rebalance-btn'),
 
+  // Every.org API Configuration Bar
+  everyorgApiKeyInput: document.getElementById('everyorg-api-key-input'),
+  apiStatusBadge: document.getElementById('api-status-badge'),
+  apiStatusText: document.getElementById('api-status-text'),
+
   // Charity Search and list
   charitySearchInput: document.getElementById('charity-search-input'),
   charityFilterSelect: document.getElementById('charity-filter-select'),
   charitiesContainer: document.getElementById('charities-container'),
+  searchLoading: document.getElementById('search-loading'),
 
   // Recommended Basket elements
   basketEmptyMessage: document.getElementById('basket-empty-message'),
@@ -153,8 +163,20 @@ function init() {
   // Render Cause Allocation Sliders
   renderCauseSliders();
 
+  // Load Every.org API Key from localStorage
+  const savedKey = localStorage.getItem('everyorg_apikey');
+  if (savedKey) {
+    appState.everyOrgApiKey = savedKey;
+    if (elements.everyorgApiKeyInput) {
+      elements.everyorgApiKeyInput.value = savedKey;
+    }
+  }
+
   // Attach Event Listeners
   setupEventListeners();
+
+  // Initialize status badge
+  updateApiStatusBadge(!!appState.everyOrgApiKey);
 
   // Set up client-side hash router
   router();
@@ -259,7 +281,20 @@ function setupEventListeners() {
     renderCharities();
   });
 
+  let searchDebounceTimeout = null;
   elements.charitySearchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounceTimeout);
+    searchDebounceTimeout = setTimeout(() => {
+      renderCharities();
+    }, 300);
+  });
+
+  // Every.org API Key Input listener
+  elements.everyorgApiKeyInput.addEventListener('input', (e) => {
+    const key = e.target.value.trim();
+    appState.everyOrgApiKey = key;
+    localStorage.setItem('everyorg_apikey', key);
+    updateApiStatusBadge(!!key);
     renderCharities();
   });
 
@@ -615,35 +650,136 @@ function updateAllocationDonut() {
 
 // --- CHARITY RESEARCH & MODAL ACTIONS ---
 
+// Every.org Category mapping table
+const CATEGORY_MAP = {
+  environment: 'environment,climate',
+  education: 'education',
+  health: 'health,medicine',
+  humanitarian: 'poverty,justice',
+  arts: 'arts,culture'
+};
+
 function renderCharities() {
-  elements.charitiesContainer.innerHTML = '';
   const filter = elements.charityFilterSelect.value;
   const searchVal = (elements.charitySearchInput.value || '').toLowerCase().trim();
 
-  const filteredCharities = MOCK_CHARITIES.filter(c => {
-    const matchesCategory = filter === 'all' || c.category === filter;
-    const matchesSearch = c.name.toLowerCase().includes(searchVal) || c.description.toLowerCase().includes(searchVal);
-    return matchesCategory && matchesSearch;
-  });
+  // If Every.org API Key is set, fetch from API
+  if (appState.everyOrgApiKey) {
+    if (elements.searchLoading) elements.searchLoading.style.display = 'flex';
+    elements.charitiesContainer.innerHTML = '';
 
-  filteredCharities.forEach(c => {
-    const cause = CAUSE_CATEGORIES[c.category];
+    const query = searchVal || 'nonprofit';
+    let url = `https://partners.every.org/v0.2/search/${encodeURIComponent(query)}?apiKey=${appState.everyOrgApiKey}&take=20`;
+    
+    if (filter !== 'all') {
+      url += `&causes=${CATEGORY_MAP[filter]}`;
+    }
+
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error('API Request Failed');
+        return res.json();
+      })
+      .then(data => {
+        if (elements.searchLoading) elements.searchLoading.style.display = 'none';
+        
+        // Cache the live results array so we can open details dialog later
+        appState.liveCharitiesCache = data.nonprofits || [];
+        renderLiveNonprofits(appState.liveCharitiesCache);
+      })
+      .catch(err => {
+        console.error(err);
+        if (elements.searchLoading) elements.searchLoading.style.display = 'none';
+        elements.charitiesContainer.innerHTML = `
+          <div style="text-align:center; padding: 2.5rem 1rem; color: var(--color-warning); font-size: 0.85rem;">
+            ⚠️ Error loading live results. Please check your API key or network connection.
+          </div>`;
+      });
+  } else {
+    // FALLBACK: Filter local static MOCK_CHARITIES database
+    if (elements.searchLoading) elements.searchLoading.style.display = 'none';
+    elements.charitiesContainer.innerHTML = '';
+
+    const filteredCharities = MOCK_CHARITIES.filter(c => {
+      const matchesCategory = filter === 'all' || c.category === filter;
+      const matchesSearch = c.name.toLowerCase().includes(searchVal) || c.description.toLowerCase().includes(searchVal);
+      return matchesCategory && matchesSearch;
+    });
+
+    if (filteredCharities.length === 0) {
+      elements.charitiesContainer.innerHTML = `
+        <div style="text-align:center; padding: 2.5rem 1rem; color: var(--color-text-dim); font-size: 0.85rem;">
+          No matching local high-impact charities found.
+        </div>`;
+      return;
+    }
+
+    filteredCharities.forEach(c => {
+      const cause = CAUSE_CATEGORIES[c.category];
+      const card = document.createElement('div');
+      card.className = 'charity-card';
+      card.role = 'listitem';
+      card.innerHTML = `
+        <div class="charity-info">
+          <div class="charity-tag-row">
+            <span class="charity-tag" style="background-color: ${cause.color}15; color: ${cause.color}">
+              ${cause.icon} ${cause.name}
+            </span>
+          </div>
+          <div class="charity-name">${c.name}</div>
+          <div class="charity-desc">${c.description}</div>
+        </div>
+        <div style="text-align: right; display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
+          <span class="charity-metric">${c.metric}</span>
+          <button class="btn btn-sm btn-primary recommend-btn" data-id="${c.id}">
+            Recommend Grant
+          </button>
+        </div>
+      `;
+
+      // Hook click
+      const btn = card.querySelector('.recommend-btn');
+      btn.addEventListener('click', () => openCharityDialog(c.id, false));
+
+      elements.charitiesContainer.appendChild(card);
+    });
+  }
+}
+
+function renderLiveNonprofits(nonprofits) {
+  elements.charitiesContainer.innerHTML = '';
+
+  if (nonprofits.length === 0) {
+    elements.charitiesContainer.innerHTML = `
+      <div style="text-align:center; padding: 2.5rem 1rem; color: var(--color-text-dim); font-size: 0.85rem;">
+        No results found on Every.org. Try adjusting your query.
+      </div>`;
+    return;
+  }
+
+  nonprofits.forEach(c => {
     const card = document.createElement('div');
     card.className = 'charity-card';
     card.role = 'listitem';
+    
+    // Fallback display values
+    const description = c.description || 'No description provided by organization.';
+    const location = c.location || 'United States';
+    const tagLabel = '501(c)(3) Nonprofit';
+
     card.innerHTML = `
       <div class="charity-info">
         <div class="charity-tag-row">
-          <span class="charity-tag" style="background-color: ${cause.color}15; color: ${cause.color}">
-            ${cause.icon} ${cause.name}
+          <span class="charity-tag" style="background-color: var(--color-primary-glow); color: var(--color-primary)">
+            🏛️ ${tagLabel}
           </span>
         </div>
         <div class="charity-name">${c.name}</div>
-        <div class="charity-desc">${c.description}</div>
+        <div class="charity-desc">${description}</div>
       </div>
       <div style="text-align: right; display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
-        <span class="charity-metric">${c.metric}</span>
-        <button class="btn btn-sm btn-primary recommend-btn" data-id="${c.id}">
+        <span class="charity-metric" style="color: var(--color-text-muted); font-weight: normal;">📍 ${location}</span>
+        <button class="btn btn-sm btn-primary recommend-btn" data-slug="${c.slug}">
           Recommend Grant
         </button>
       </div>
@@ -651,35 +787,78 @@ function renderCharities() {
 
     // Hook click
     const btn = card.querySelector('.recommend-btn');
-    btn.addEventListener('click', () => openCharityDialog(c.id));
+    btn.addEventListener('click', () => openCharityDialog(c.slug, true));
 
     elements.charitiesContainer.appendChild(card);
   });
 }
 
-function openCharityDialog(charityId) {
-  const charity = MOCK_CHARITIES.find(c => c.id === charityId);
-  if (!charity) return;
+function openCharityDialog(id, isLiveSearch) {
+  let name, description, websiteUrl, location, displayMetric, detailsHtml;
+  
+  if (isLiveSearch) {
+    const charity = (appState.liveCharitiesCache || []).find(c => c.slug === id);
+    if (!charity) return;
 
-  appState.selectedCharityId = charityId;
-  const cause = CAUSE_CATEGORIES[charity.category];
+    appState.selectedCharityId = charity.slug;
+    appState.selectedLiveCharity = charity; // cache details
 
-  elements.dialogTitle.textContent = `Recommend Grant: ${charity.name}`;
-  elements.dialogContent.innerHTML = `
-    <div style="margin-bottom: 1rem;">
-      <span class="charity-tag" style="background-color: ${cause.color}15; color: ${cause.color}; font-size: 0.75rem; font-weight:700; text-transform:uppercase;">
-        ${cause.icon} ${cause.name}
-      </span>
-      <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #ffffff;">${charity.description}</p>
-      <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem; border:1px dashed ${cause.color}30;">
-        <span style="font-size:0.75rem; color:var(--color-text-muted);">Impact Efficiency Metric:</span>
-        <div style="font-size:0.95rem; font-weight:700; color:var(--color-warning); margin-top:0.125rem;">${charity.metric}</div>
+    name = charity.name;
+    description = charity.description || 'No description provided by organization.';
+    websiteUrl = charity.websiteUrl || charity.profileUrl;
+    location = charity.location || 'United States';
+    displayMetric = 'Tax-deductible public charity registered under IRC section 501(c)(3).';
+
+    detailsHtml = `
+      <div style="margin-bottom: 1rem;">
+        <span class="charity-tag" style="background-color: var(--color-primary-glow); color: var(--color-primary); font-size: 0.75rem; font-weight:700; text-transform:uppercase;">
+          🏛️ 501(c)(3) Nonprofit
+        </span>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #ffffff;">${description}</p>
+        <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem; border:1px dashed var(--color-primary);">
+          <span style="font-size:0.75rem; color:var(--color-text-muted);">Nonprofit Verification:</span>
+          <div style="font-size:0.85rem; font-weight:600; color:var(--color-accent); margin-top:0.125rem;">${displayMetric}</div>
+          <div style="font-size:0.75rem; color:var(--color-text-dim); margin-top:0.25rem;">📍 Location: ${location}</div>
+        </div>
+        ${websiteUrl ? `
+        <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--color-text-muted);">
+          Charity Link: <a href="${websiteUrl}" target="_blank" style="color: var(--color-primary); text-decoration:none;">${websiteUrl.replace(/https?:\/\/(www\.)?/, '')} ↗</a>
+        </p>
+        ` : ''}
       </div>
-      <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--color-text-muted);">
-        Charity URL: <a href="https://${charity.website}" target="_blank" style="color: var(--color-primary); text-decoration:none;">${charity.website} ↗</a>
-      </p>
-    </div>
-  `;
+    `;
+  } else {
+    const charity = MOCK_CHARITIES.find(c => c.id === id);
+    if (!charity) return;
+
+    appState.selectedCharityId = charity.id;
+    appState.selectedLiveCharity = null;
+    const cause = CAUSE_CATEGORIES[charity.category];
+
+    name = charity.name;
+    description = charity.description;
+    websiteUrl = `https://${charity.website}`;
+    displayMetric = charity.metric;
+
+    detailsHtml = `
+      <div style="margin-bottom: 1rem;">
+        <span class="charity-tag" style="background-color: ${cause.color}15; color: ${cause.color}; font-size: 0.75rem; font-weight:700; text-transform:uppercase;">
+          ${cause.icon} ${cause.name}
+        </span>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #ffffff;">${description}</p>
+        <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem; border:1px dashed ${cause.color}30;">
+          <span style="font-size:0.75rem; color:var(--color-text-muted);">Impact Efficiency Metric:</span>
+          <div style="font-size:0.95rem; font-weight:700; color:var(--color-warning); margin-top:0.125rem;">${displayMetric}</div>
+        </div>
+        <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--color-text-muted);">
+          Charity URL: <a href="${websiteUrl}" target="_blank" style="color: var(--color-primary); text-decoration:none;">${charity.website} ↗</a>
+        </p>
+      </div>
+    `;
+  }
+
+  elements.dialogTitle.textContent = `Recommend Grant: ${name}`;
+  elements.dialogContent.innerHTML = detailsHtml;
 
   // Prefill a default recommendation amount equal to a portion of the projected annual payout
   const projections = calculateProjections({
@@ -785,13 +964,20 @@ function getBasketTotal() {
 }
 
 function addGrantToBasket(charityId, amount) {
-  const charity = MOCK_CHARITIES.find(c => c.id === charityId);
-  if (!charity) return;
+  let name = '';
+  
+  if (appState.selectedLiveCharity && appState.selectedLiveCharity.slug === charityId) {
+    name = appState.selectedLiveCharity.name;
+  } else {
+    const charity = MOCK_CHARITIES.find(c => c.id === charityId);
+    if (!charity) return;
+    name = charity.name;
+  }
 
   appState.recommendedGrants.push({
     id: Date.now().toString(),
     charityId,
-    name: charity.name,
+    name,
     amount
   });
 
@@ -842,6 +1028,20 @@ function renderBasketItems() {
 
     elements.basketItemsContainer.appendChild(item);
   });
+}
+
+// Every.org Status Badge Helper
+function updateApiStatusBadge(isActive) {
+  if (!elements.apiStatusBadge || !elements.apiStatusText) return;
+  const dot = elements.apiStatusBadge.querySelector('.badge-dot');
+  
+  if (isActive) {
+    if (dot) dot.className = 'badge-dot active';
+    elements.apiStatusText.textContent = 'Live Search Active';
+  } else {
+    if (dot) dot.className = 'badge-dot fallback';
+    elements.apiStatusText.textContent = 'Local Fallback Active';
+  }
 }
 
 // Start application

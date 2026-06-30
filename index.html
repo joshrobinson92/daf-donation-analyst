@@ -336,6 +336,22 @@
         
         <!-- Charity Directory Listing Panel (Left Column) -->
         <div class="card" style="display: flex; flex-direction: column; gap: 1.25rem;">
+          
+          <!-- Every.org API Settings Bar -->
+          <div class="api-settings-bar">
+            <div class="api-status-badge" id="api-status-badge">
+              <span class="badge-dot fallback"></span>
+              <span class="badge-text" id="api-status-text">Local Fallback Active</span>
+            </div>
+            
+            <div class="api-key-input-wrapper">
+              <label for="everyorg-api-key-input" class="api-key-label">Every.org Public API Key:</label>
+              <input type="password" id="everyorg-api-key-input" class="input-text api-key-input" placeholder="Paste public API key..." aria-label="Every.org Public API Key">
+            </div>
+            
+            <a href="https://every.org/charity-api" target="_blank" class="api-link-hint">Get Free Key ↗</a>
+          </div>
+
           <div class="charity-section-header">
             <h3 class="section-title">🔍 Nonprofit Search</h3>
             <div class="search-filters">
@@ -350,6 +366,12 @@
                 <option value="arts">Arts & Culture</option>
               </select>
             </div>
+          </div>
+
+          <!-- Loading Spinner -->
+          <div class="search-loading" id="search-loading" style="display: none;">
+            <div class="spinner"></div>
+            <span>Searching Every.org database...</span>
           </div>
 
           <div class="charity-list" id="charities-container" role="list">

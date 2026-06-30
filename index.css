@@ -999,6 +999,114 @@ dialog[open] {
   color: #ef4444;
 }
 
+/* Every.org API Settings Bar */
+.api-settings-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
+  font-size: 0.775rem;
+  margin-bottom: 0.5rem;
+}
+
+.api-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.2rem 0.625rem;
+  border-radius: 2rem;
+  border: 1px solid var(--color-border);
+}
+
+.badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.badge-dot.fallback {
+  background-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.badge-dot.active {
+  background-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.badge-text {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.api-key-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.api-key-label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.api-key-input {
+  max-width: 170px !important;
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.725rem !important;
+  margin: 0 !important;
+  height: 28px;
+}
+
+.api-link-hint {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+.api-link-hint:hover {
+  color: #60a5fa;
+}
+
+/* Search Loading Spinner */
+.search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Responsive constraints */
 @media (max-width: 1024px) {
   .dashboard-grid {
@@ -1034,6 +1142,20 @@ dialog[open] {
   }
   .search-filters select {
     width: 100%;
+  }
+  .api-settings-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .api-key-input-wrapper {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .api-key-input {
+    max-width: 100% !important;
+    flex: 1;
+    margin-left: 0.5rem !important;
   }
 }
 
